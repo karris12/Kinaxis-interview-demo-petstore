@@ -1,0 +1,5 @@
+awsServices
+bedrock
+s3 bucket
+IAM
+cloudWatch
