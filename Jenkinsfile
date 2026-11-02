@@ -1,86 +1,104 @@
+
 pipeline {
-    agent any 
-    
-    tools{
+    agent any
+
+    tools {
         jdk 'jdk21'
         maven 'maven3'
     }
-    
+
     environment {
-        SCANNER_HOME=tool 'sonar-scanner'
+        SCANNER_HOME = tool 'sonar-scanner'
+        DOCKER_IMAGE = 'agodzo/pet-clinic123:latest'
     }
-    
-    stages{
-        
-        stage("Git Checkout"){
-            steps{
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karris12/Kinaxis-interview-demo-petstore.git'
+
+    stages {
+
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main',
+                    changelog: false,
+                    poll: false,
+                    url: 'https://github.com/karris12/Kinaxis-interview-demo-petstore.git'
             }
         }
-        
-        stage("Compile"){
-            steps{
-                sh "mvn clean compile"
+
+        stage('Build and Test') {
+            steps {
+                sh 'mvn clean verify'
             }
         }
-        
-         stage("Test Cases"){
-            steps{
-                sh "mvn test"
+
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
+                ]) {
+                    withSonarQubeEnv('sonar-server') {
+                        sh '''
+                            $SCANNER_HOME/bin/sonar-scanner \
+                              -Dsonar.projectName=Petclinic \
+                              -Dsonar.projectKey=Petclinic \
+                              -Dsonar.java.binaries=target/classes \
+                              -Dsonar.token=$SONAR_TOKEN
+                        '''
+                    }
+                }
             }
         }
-        
-       stage("Sonarqube Analysis") {
-    steps {
-        // Use credentials() to securely bind your SonarQube token in Jenkins
-        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-            withSonarQubeEnv('sonar-server') {
+
+        stage('OWASP Dependency Check') {
+            steps {
+                dependencyCheck(
+                    additionalArguments: '--scan . --format XML',
+                    odcInstallation: 'DP'
+                )
+
+                dependencyCheckPublisher(
+                    pattern: '**/dependency-check-report.xml'
+                )
+            }
+        }
+
+        stage('Docker Build and Push') {
+            steps {
+                script {
+                    withDockerRegistry([
+                        credentialsId: 'docker-cred',
+                        url: 'https://index.docker.io/v1/'
+                    ]) {
+                        sh '''
+                            docker build -t $DOCKER_IMAGE .
+                            docker push $DOCKER_IMAGE
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Trivy Vulnerability Scan') {
+            steps {
                 sh '''
-                    $SCANNER_HOME/bin/sonar-scanner \
-                      -Dsonar.projectName=Petclinic \
-                      -Dsonar.projectKey=Petclinic \
-                      -Dsonar.java.binaries=. \
-                      -Dsonar.login=$SONAR_TOKEN
+                    trivy --config "" image \
+                        --ignorefile /dev/null \
+                        --scanners vuln \
+                        $DOCKER_IMAGE
+                '''
+            }
+        }
+
+        stage('Deploy To Tomcat Container') {
+            steps {
+                sh '''
+                    docker rm -f petclinic-app || true
+
+                    docker run -d \
+                        --name petclinic-app \
+                        --restart unless-stopped \
+                        -p 8081:8080 \
+                        $DOCKER_IMAGE
                 '''
             }
         }
     }
-}
-        
-        stage("OWASP Dependency Check"){
-            steps{
-                dependencyCheck additionalArguments: '--scan ./ --format HTML ', odcInstallation: 'DP'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-            }
-        }
-        
-         stage("Build"){
-            steps{
-                sh " mvn clean install"
-            }
-        }
-        
-        stage('Docker Build & Push') {
-    steps {
-        script {
-            withDockerRegistry([
-                credentialsId: 'docker-cred',
-                url: 'https://index.docker.io/v1/'
-            ]) {
-                sh 'docker build -t agodzo/pet-clinic123:latest .'
-                sh 'docker push agodzo/pet-clinic123:latest'
-            }
-        }
-    }
-}
-        
-stage("TRIVY") {
-    steps {
-        sh '''
-            trivy --config "" image \
-                --scanners vuln \
-                agodzo/pet-clinic123:latest
-        '''
-    }
-}
 }
