@@ -51,7 +51,7 @@ pipeline {
     steps {
         withCredentials([string(credentialsId: 'owasp-nvd-api-key', variable: 'NVD_API_KEY')]) {
             dependencyCheck(
-                additionalArguments: "--scan . --format XML --nvdApiKey ${NVD_API_KEY}",
+                additionalArguments: '--scan . --format XML --nvdApiKey ' + NVD_API_KEY,
                 odcInstallation: 'DP'
             )
 
