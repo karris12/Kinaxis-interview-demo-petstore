@@ -60,18 +60,16 @@ pipeline {
             }
         }
         
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        
-                        sh "docker build -t image1 ."
-                        sh "docker tag image1 agodzo/pet-clinic123:latest "
-                        sh "docker push agodzo/pet-clinic123:latest "
-                    }
-                }
+        stage("Docker Build & Push") {
+    steps {
+        script {
+            withDockerRegistry([credentialsId: 'docker-cred', url: 'https://app.docker.com/accounts/agodzo']) {
+                sh 'docker build -t agodzo/pet-clinic123:latest .'
+                sh 'docker push agodzo/pet-clinic123:latest'
             }
         }
+    }
+}
         
         stage("TRIVY"){
             steps{
