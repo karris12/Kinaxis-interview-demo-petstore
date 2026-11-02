@@ -74,24 +74,12 @@ pipeline {
     }
 }
         
-        stage("TRIVY"){
-            steps{
-                sh " trivy image agodzo/pet-clinic123:latest"
-            }
-        }
-        
-                stage("Deploy To Tomcat Container") {
-            steps {
-                sh '''
-                    docker rm -f petclinic-app || true
-
-                    docker run -d \
-                        --name petclinic-app \
-                        --restart unless-stopped \
-                        -p 8081:8080 \
-                        agodzo/pet-clinic123:latest
-                '''
-            }
-        }
+stage("TRIVY") {
+    steps {
+        sh '''
+            trivy --config "" image \
+                --scanners vuln \
+                agodzo/pet-clinic123:latest
+        '''
     }
 }
