@@ -63,7 +63,7 @@ pipeline {
         stage("Docker Build & Push") {
     steps {
         script {
-            withDockerRegistry([credentialsId: 'docker-cred', url: 'https://app.docker.com/accounts/agodzo']) {
+            withDockerRegistry([credentialsId: 'docker-cred', url: 'https://hub.docker.com/repositories/agodzo']) {
                 sh 'docker build -t agodzo/pet-clinic123:latest .'
                 sh 'docker push agodzo/pet-clinic123:latest'
             }
