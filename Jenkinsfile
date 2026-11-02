@@ -80,16 +80,18 @@ pipeline {
             }
         }
         
-        stage("Deploy To Tomcat Container") {
-    steps {
-        sh '''
-            docker rm -f petclinic-app || true
+                stage("Deploy To Tomcat Container") {
+            steps {
+                sh '''
+                    docker rm -f petclinic-app || true
 
-            docker run -d \
-                --name petclinic-app \
-                --restart unless-stopped \
-                -p 8081:8080 \
-                agodzo/pet-clinic123:latest
-        '''
+                    docker run -d \
+                        --name petclinic-app \
+                        --restart unless-stopped \
+                        -p 8081:8080 \
+                        agodzo/pet-clinic123:latest
+                '''
+            }
+        }
     }
 }
