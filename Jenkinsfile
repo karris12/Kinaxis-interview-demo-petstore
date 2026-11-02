@@ -80,11 +80,16 @@ pipeline {
             }
         }
         
-        stage("Deploy To Tomcat") {
+        stage("Deploy To Tomcat Container") {
     steps {
         sh '''
-            cp "$WORKSPACE/target/petclinic.war" \
-            /opt/apache-tomcat-9.0.65/webapps/
+            docker rm -f petclinic-app || true
+
+            docker run -d \
+                --name petclinic-app \
+                --restart unless-stopped \
+                -p 8081:8080 \
+                agodzo/pet-clinic123:latest
         '''
     }
 }
