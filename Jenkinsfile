@@ -2,7 +2,7 @@ pipeline {
     agent any 
     
     tools{
-        jdk 'jdk11'
+        jdk 'jdk21'
         maven 'maven3'
     }
     
@@ -14,7 +14,7 @@ pipeline {
         
         stage("Git Checkout"){
             steps{
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/jaiswaladi246/Petclinic.git'
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karris12/Kinaxis-interview-demo-petstore.git'
             }
         }
         
@@ -30,16 +30,22 @@ pipeline {
             }
         }
         
-        stage("Sonarqube Analysis "){
-            steps{
-                withSonarQubeEnv('sonar-server') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Petclinic \
-                    -Dsonar.java.binaries=. \
-                    -Dsonar.projectKey=Petclinic '''
-    
-                }
+       stage("Sonarqube Analysis") {
+    steps {
+        // Use credentials() to securely bind your SonarQube token in Jenkins
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            withSonarQubeEnv('sonar-server') {
+                sh '''
+                    $SCANNER_HOME/bin/sonar-scanner \
+                      -Dsonar.projectName=Petclinic \
+                      -Dsonar.projectKey=Petclinic \
+                      -Dsonar.java.binaries=. \
+                      -Dsonar.login=$SONAR_TOKEN
+                '''
             }
         }
+    }
+}
         
         stage("OWASP Dependency Check"){
             steps{
@@ -60,8 +66,8 @@ pipeline {
                    withDockerRegistry(credentialsId: '58be877c-9294-410e-98ee-6a959d73b352', toolName: 'docker') {
                         
                         sh "docker build -t image1 ."
-                        sh "docker tag image1 adijaiswal/pet-clinic123:latest "
-                        sh "docker push adijaiswal/pet-clinic123:latest "
+                        sh "docker tag image1 agodzo/pet-clinic123:latest "
+                        sh "docker push agodzo/pet-clinic123:latest "
                     }
                 }
             }
@@ -69,7 +75,7 @@ pipeline {
         
         stage("TRIVY"){
             steps{
-                sh " trivy image adijaiswal/pet-clinic123:latest"
+                sh " trivy image agodzo/pet-clinic123:latest"
             }
         }
         
